@@ -1,0 +1,6 @@
+@WizardGameAPI_HostAddress = http://localhost:5117
+
+GET {{WizardGameAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
