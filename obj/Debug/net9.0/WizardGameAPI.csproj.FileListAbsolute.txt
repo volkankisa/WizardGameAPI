@@ -8,6 +8,9 @@ C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\WizardGameAPI.dll
 C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\WizardGameAPI.pdb
 C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Microsoft.OpenApi.dll
+C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.csproj.AssemblyReference.cache
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.GeneratedMSBuildEditorConfig.editorconfig
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.AssemblyInfoInputs.cache
@@ -15,6 +18,7 @@ C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.AssemblyInfo.cs
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.csproj.CoreCompileInputs.cache
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.sourcelink.json
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\scopedcss\bundle\WizardGameAPI.styles.css
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\staticwebassets.development.json
@@ -31,6 +35,3 @@ C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\refint\WizardGameAPI.dll
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.pdb
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\WizardGameAPI.genruntimeconfig.cache
 C:\Users\monster\WizardGameAPI\obj\Debug\net9.0\ref\WizardGameAPI.dll
-C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
-C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
-C:\Users\monster\WizardGameAPI\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll

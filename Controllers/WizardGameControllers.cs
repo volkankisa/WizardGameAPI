@@ -214,7 +214,167 @@ namespace WizardGameAPI.Controllers
             }
         }
 
+        // 🔥 Real-time monitoring endpoint
+        [HttpPost("report-suspicious-activity")]
+        public IActionResult ReportSuspiciousActivity([FromBody] SuspiciousActivityRequest request)
+        {
+            try
+            {
+                _logger.LogWarning($"🚨 SUSPICIOUS ACTIVITY: {request.ActivityType} - {request.Details}");
+                _logger.LogWarning($"   Session: {request.SessionId}, Severity: {request.SeverityLevel}");
+
+                // Aktivite türüne göre tepki ver
+                var response = AnalyzeSuspiciousActivity(request);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Suspicious activity processing error");
+                return Ok(new { success = false, reason = "Processing failed" });
+            }
+        }
+
+        // 🔥 Real-time validation
+        [HttpPost("real-time-validation")]
+        public IActionResult RealTimeValidation([FromBody] RealTimeValidationRequest request)
+        {
+            try
+            {
+                _logger.LogInformation($"🔥 Real-time validation for session: {request.SessionId}");
+
+                // Real-time validations
+                var validationResult = PerformRealTimeValidations(request);
+
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning($"❌ Real-time validation failed: {validationResult.Reason}");
+                    return Ok(new 
+                    { 
+                        success = false, 
+                        reason = validationResult.Reason, 
+                        cheatProbability = validationResult.CheatProbability,
+                        action = "terminate_session"
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Real-time validation passed",
+                    trustScore = CalculateTrustScore(request),
+                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Real-time validation error");
+                return Ok(new { success = false, reason = "Validation failed" });
+            }
+        }
+
         // 🔧 HELPER METHODS
+        private dynamic AnalyzeSuspiciousActivity(SuspiciousActivityRequest request)
+        {
+            var response = new
+            {
+                success = true,
+                message = "Activity logged",
+                action = "monitor",
+                cheatProbability = 0
+            };
+
+            // Aktivite türüne göre analiz
+            switch (request.ActivityType.ToLower())
+            {
+                case "rapid_score_increase":
+                    if (request.SeverityLevel >= 8)
+                    {
+                        response = new
+                        {
+                            success = false,
+                            message = "Rapid score manipulation detected",
+                            action = "terminate_session",
+                            cheatProbability = 95
+                        };
+                    }
+                    break;
+
+                case "impossible_timing":
+                    response = new
+                    {
+                        success = false,
+                        message = "Impossible timing detected",
+                        action = "flag_player",
+                        cheatProbability = 90
+                    };
+                    break;
+
+                case "pattern_anomaly":
+                    if (request.SeverityLevel >= 7)
+                    {
+                        response = new
+                        {
+                            success = false,
+                            message = "Suspicious pattern detected",
+                            action = "increase_monitoring",
+                            cheatProbability = 75
+                        };
+                    }
+                    break;
+            }
+
+            return response;
+        }
+
+        private ValidationResult PerformRealTimeValidations(RealTimeValidationRequest request)
+        {
+            // Score per second check
+            if (request.GameTimeSeconds > 0)
+            {
+                var scorePerSecond = (double)request.CurrentScore / request.GameTimeSeconds;
+                if (scorePerSecond > 20.0) // Max 20 points per second
+                {
+                    return new ValidationResult(false, "Score too fast", 95);
+                }
+            }
+
+            // Hearts validation
+            if (request.RemainingHearts < 0 || request.RemainingHearts > 3)
+            {
+                return new ValidationResult(false, "Invalid hearts count", 99);
+            }
+
+            // Items hit vs score consistency
+            var expectedScore = request.ItemsHit * 10;
+            if (Math.Abs(request.CurrentScore - expectedScore) > 50)
+            {
+                return new ValidationResult(false, "Score/items mismatch", 90);
+            }
+
+            return new ValidationResult(true, "Real-time validation passed", 0);
+        }
+
+        private int CalculateTrustScore(RealTimeValidationRequest request)
+        {
+            int trustScore = 100;
+
+            // Score consistency
+            var expectedScore = request.ItemsHit * 10;
+            var scoreDiff = Math.Abs(request.CurrentScore - expectedScore);
+            if (scoreDiff > 20) trustScore -= 10;
+
+            // Timing consistency
+            if (request.GameTimeSeconds > 0)
+            {
+                var scorePerSecond = (double)request.CurrentScore / request.GameTimeSeconds;
+                if (scorePerSecond > 15) trustScore -= 15;
+                if (scorePerSecond > 10) trustScore -= 5;
+            }
+
+            return Math.Max(0, trustScore);
+        }
+
         private string CreateDeviceId(ClientDeviceFingerprint fingerprint)
         {
             var deviceString = $"{fingerprint.UserAgent}:{fingerprint.ScreenResolution.Width}x{fingerprint.ScreenResolution.Height}:{fingerprint.TimezoneOffset}:{fingerprint.CanvasFingerprint}:{fingerprint.WebGLFingerprint}";
@@ -261,18 +421,18 @@ namespace WizardGameAPI.Controllers
         private ValidationResult ValidateDeviceBoundToken(SecureActionRequest request)
         {
             if (!_deviceTokens.TryGetValue(request.PermissionToken, out var tokenData))
-                return new ValidationResult(false, "Token not found");
+                return new ValidationResult(false, "Token not found", 99);
 
             if (DateTime.UtcNow > tokenData.ExpiresAt)
-                return new ValidationResult(false, "Token expired");
+                return new ValidationResult(false, "Token expired", 95);
 
             if (tokenData.IsUsed)
-                return new ValidationResult(false, "Token already used");
+                return new ValidationResult(false, "Token already used", 90);
 
             if (tokenData.SessionId != request.SessionId)
-                return new ValidationResult(false, "Session mismatch");
+                return new ValidationResult(false, "Session mismatch", 99);
 
-            return new ValidationResult(true, "Token valid");
+            return new ValidationResult(true, "Token valid", 0);
         }
 
         private string GenerateServerVerification(string sessionId)
@@ -318,6 +478,26 @@ namespace WizardGameAPI.Controllers
         public string PermissionToken { get; set; } = "";
         public WizardGameData GameData { get; set; } = new();
         public ClientDeviceFingerprint DeviceFingerprint { get; set; } = new();
+        public long Timestamp { get; set; }
+    }
+
+    public class SuspiciousActivityRequest
+    {
+        public string SessionId { get; set; } = "";
+        public string ActivityType { get; set; } = "";
+        public string Details { get; set; } = "";
+        public int SeverityLevel { get; set; }
+        public long Timestamp { get; set; }
+    }
+
+    public class RealTimeValidationRequest
+    {
+        public string SessionId { get; set; } = "";
+        public int CurrentScore { get; set; }
+        public int RemainingHearts { get; set; }
+        public int ItemsHit { get; set; }
+        public int BombsHit { get; set; }
+        public double GameTimeSeconds { get; set; }
         public long Timestamp { get; set; }
     }
 
@@ -382,12 +562,14 @@ namespace WizardGameAPI.Controllers
     public class ValidationResult
     {
         public bool IsValid { get; set; }
-        public string Reason { get; set; }
+        public string Reason { get; set; } = "";
+        public int CheatProbability { get; set; }
 
-        public ValidationResult(bool isValid, string reason)
+        public ValidationResult(bool isValid, string reason, int cheatProbability = 0)
         {
             IsValid = isValid;
             Reason = reason;
+            CheatProbability = cheatProbability;
         }
     }
 }

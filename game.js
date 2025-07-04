@@ -273,6 +273,177 @@ class WizardSnapshotProtection {
 // Global access
 window.WizardSnapshotProtection = WizardSnapshotProtection;
 
+// 🍯 INVISIBLE HONEYPOT DETECTION SYSTEM
+class WizardHoneypot {
+    constructor(gameScene) {
+        this.scene = gameScene;
+        this.invisibleObstacles = new Set();
+        this.expectedCollisions = new Set();
+        this.actualCollisions = new Set();
+        this.suspiciousActivity = [];
+        this.collisionlessCount = 0;
+        this.sessionId = null;
+
+        console.log("🍯 Wizard Honeypot system initialized");
+    }
+
+    setSessionId(sessionId) {
+        this.sessionId = sessionId;
+        console.log(`🍯 Honeypot session set: ${sessionId}`);
+    }
+
+    // Görünmez engel oluştur
+    createInvisibleObstacle(x, y, type = 'invisible') {
+        const obstacleId = `honeypot_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+
+        console.log(`🍯 Creating invisible obstacle: ${obstacleId} at (${x}, ${y})`);
+
+        // Görünmez obstacle oluştur
+        const invisible = this.scene.add.rectangle(x, y, 40, 60, 0x000000, 0);
+        this.scene.physics.add.existing(invisible);
+        invisible.body.setImmovable(true);
+        invisible.body.allowGravity = false;
+        invisible.setVisible(false); // Görünmez
+
+        invisible.honeypotId = obstacleId;
+        invisible.honeypotType = type;
+        invisible.expectedHit = true;
+        invisible.hasPassed = false;
+
+        // Collision handler ekle
+        this.scene.physics.add.overlap(this.scene.arrows, invisible, (arrow, obstacle) => {
+            console.log(`💥 Honeypot collision: ${obstacle.honeypotId}`);
+            this.onHoneypotCollision(obstacle.honeypotId, obstacle.honeypotType);
+        });
+
+        this.invisibleObstacles.add(invisible);
+        this.expectedCollisions.add(obstacleId);
+
+        console.log(`🍯 Total invisible obstacles: ${this.invisibleObstacles.size}`);
+
+        return invisible;
+    }
+
+    // Strategik honeypot yerleştirme
+    placeStrategicHoneypots() {
+        console.log("🔍 Placing strategic honeypots...");
+
+        if (!this.scene.bombs || !this.scene.items) {
+            console.log("❌ Game objects not ready for honeypot placement");
+            return;
+        }
+
+        // Bombalar ve itemlar arasına honeypot yerleştir
+        const allObjects = [
+            ...this.scene.bombs.children.entries,
+            ...this.scene.items.children.entries
+        ];
+
+        if (allObjects.length < 2) {
+            console.log("⚠️ Not enough objects for honeypot placement");
+            return;
+        }
+
+        let honeypotCount = 0;
+
+        // Random pozisyonlarda honeypot yerleştir
+        for (let i = 0; i < 2; i++) {
+            const x = Phaser.Math.Between(600, 1200);
+            const y = Phaser.Math.Between(200, 600);
+
+            this.createInvisibleObstacle(x, y, 'strategic');
+            honeypotCount++;
+        }
+
+        console.log(`✅ Placed ${honeypotCount} strategic honeypots`);
+    }
+
+    // Honeypot collision tespit edildi
+    onHoneypotCollision(obstacleId, type) {
+        console.log(`💥 Honeypot collision detected: ${obstacleId} (${type})`);
+
+        this.actualCollisions.add(obstacleId);
+        this.collisionlessCount = 0;
+
+        // Suspicious activity kaydet
+        this.suspiciousActivity.push({
+            type: 'honeypot_collision',
+            obstacleId: obstacleId,
+            timestamp: Date.now(),
+            playerPosition: { x: this.scene.player?.x || 0, y: this.scene.player?.y || 0 }
+        });
+
+        // Backend'e bildir
+        this.reportCollisionToServer(obstacleId, 'honeypot_hit');
+
+        // Honeypot'ı temizle
+        this.invisibleObstacles.forEach(obstacle => {
+            if (obstacle.honeypotId === obstacleId) {
+                obstacle.destroy();
+                this.invisibleObstacles.delete(obstacle);
+                console.log(`🧹 Honeypot ${obstacleId} cleaned up after collision`);
+            }
+        });
+    }
+
+    // Server'a collision rapor et
+    async reportCollisionToServer(obstacleId, type) {
+        try {
+            console.log(`📡 Reporting honeypot collision: ${type}`);
+            // Bu endpoint'i henüz backend'e eklemiyoruz, sadece log
+            console.log(`🍯 Honeypot data: ${obstacleId}, Session: ${this.sessionId}`);
+        } catch (error) {
+            console.error("❌ Failed to report honeypot collision:", error);
+        }
+    }
+
+    // Player tracking - arrows takip et
+    trackPlayerArrows() {
+        if (!this.scene.arrows) return;
+
+        this.scene.arrows.children.each((arrow) => {
+            if (arrow && arrow.active) {
+                // Arrow'ların honeypot'larla etkileşimini izle
+                this.invisibleObstacles.forEach(obstacle => {
+                    if (obstacle.active) {
+                        const distance = Phaser.Math.Distance.Between(arrow.x, arrow.y, obstacle.x, obstacle.y);
+                        if (distance < 30 && !obstacle.hasPassed) {
+                            obstacle.hasPassed = true;
+                            console.log(`🎯 Arrow passed near honeypot: ${obstacle.honeypotId}`);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // Cleanup
+    cleanup() {
+        this.invisibleObstacles.forEach(obstacle => {
+            if (obstacle && obstacle.destroy) {
+                obstacle.destroy();
+            }
+        });
+        this.invisibleObstacles.clear();
+        console.log("🧹 Honeypot obstacles cleaned up");
+    }
+
+    // Debug info
+    getStatus() {
+        return {
+            sessionId: this.sessionId,
+            totalInvisibleObstacles: this.invisibleObstacles.size,
+            expectedCollisions: this.expectedCollisions.size,
+            actualCollisions: this.actualCollisions.size,
+            collisionlessCount: this.collisionlessCount,
+            suspiciousActivities: this.suspiciousActivity.length
+        };
+    }
+}
+
+// Global access
+window.WizardHoneypot = WizardHoneypot;
+
 
 // 🌐 WIZARD GAME API CLIENT
 class WizardGameAPI {
@@ -460,6 +631,403 @@ class WizardGameAPI {
 
 // Global API client
 window.wizardAPI = new WizardGameAPI();
+
+// 🔥 REAL-TIME MONITORING SYSTEM
+class WizardRealTimeMonitor {
+    constructor(gameScene) {
+        this.scene = gameScene;
+        this.sessionId = null;
+        this.apiClient = null;
+        this.isActive = false;
+
+        // Monitoring intervals
+        this.validationInterval = 15000; // 15 saniyede bir validation
+        this.activityCheckInterval = 5000; // 5 saniyede bir activity check
+
+        // Data tracking
+        this.lastGameState = null;
+        this.scoreHistory = [];
+        this.actionHistory = [];
+        this.suspiciousEvents = [];
+
+        // Thresholds
+        this.maxScorePerSecond = 15;
+        this.maxActionsPerSecond = 10;
+        this.suspiciousScoreJump = 50;
+
+        console.log('🔥 Real-Time Monitor initialized');
+    }
+
+    setAPIClient(apiClient) {
+        this.apiClient = apiClient;
+        this.sessionId = apiClient.sessionId;
+        console.log('🔗 Real-Time Monitor connected to API');
+    }
+
+    start() {
+        if (this.isActive || !this.apiClient) return;
+
+        this.isActive = true;
+        this.startTime = Date.now();
+
+        // Validation loop başlat
+        setTimeout(() => {
+            this.startValidationLoop();
+        }, this.validationInterval);
+
+        // Activity monitoring loop başlat
+        setTimeout(() => {
+            this.startActivityMonitoringLoop();
+        }, this.activityCheckInterval);
+
+        console.log('🔥 Real-Time Monitoring started');
+        console.log(`📊 Validation every ${this.validationInterval / 1000}s`);
+        console.log(`👁️ Activity check every ${this.activityCheckInterval / 1000}s`);
+    }
+
+    stop() {
+        this.isActive = false;
+        console.log('🔥 Real-Time Monitoring stopped');
+    }
+
+    // Ana validation loop
+    startValidationLoop() {
+        if (!this.isActive) return;
+
+        this.performRealTimeValidation();
+
+        setTimeout(() => {
+            this.startValidationLoop();
+        }, this.validationInterval);
+    }
+
+    // Activity monitoring loop
+    startActivityMonitoringLoop() {
+        if (!this.isActive) return;
+
+        this.checkSuspiciousActivity();
+
+        setTimeout(() => {
+            this.startActivityMonitoringLoop();
+        }, this.activityCheckInterval);
+    }
+
+    // Real-time validation gerçekleştir
+    async performRealTimeValidation() {
+        if (!this.scene.gameActive || !this.apiClient) return;
+
+        try {
+            const currentGameState = this.captureGameState();
+            const gameTimeSeconds = (Date.now() - this.startTime) / 1000;
+
+            const validationData = {
+                sessionId: this.sessionId,
+                currentScore: currentGameState.score,
+                remainingHearts: currentGameState.hearts,
+                itemsHit: currentGameState.itemsHit,
+                bombsHit: currentGameState.bombsHit,
+                gameTimeSeconds: gameTimeSeconds,
+                timestamp: Date.now()
+            };
+
+            console.log('🔥 Performing real-time validation:', validationData);
+
+            const response = await this.apiClient.realTimeValidation(validationData);
+
+            if (!response.success) {
+                console.log('🚨 REAL-TIME VALIDATION FAILED!');
+                console.log(`Reason: ${response.reason}`);
+                console.log(`Cheat Probability: ${response.cheatProbability}%`);
+
+                this.handleValidationFailure(response);
+            } else {
+                console.log(`✅ Real-time validation passed (Trust Score: ${response.trustScore})`);
+            }
+
+        } catch (error) {
+            console.error('❌ Real-time validation error:', error);
+        }
+    }
+
+    // Şüpheli aktivite kontrolü
+    checkSuspiciousActivity() {
+        if (!this.scene.gameActive) return;
+
+        const currentState = this.captureGameState();
+
+        // Skor history'ye ekle
+        this.scoreHistory.push({
+            score: currentState.score,
+            timestamp: Date.now()
+        });
+
+        // Son 10 saniyeyi tut
+        const tenSecondsAgo = Date.now() - 10000;
+        this.scoreHistory = this.scoreHistory.filter(entry => entry.timestamp > tenSecondsAgo);
+
+        // Şüpheli aktiviteleri kontrol et
+        this.detectRapidScoreIncrease();
+        this.detectImpossibleTiming();
+        this.detectPatternAnomalies();
+
+        this.lastGameState = currentState;
+    }
+
+    // Hızlı skor artışı tespiti
+    detectRapidScoreIncrease() {
+        if (this.scoreHistory.length < 2) return;
+
+        const current = this.scoreHistory[this.scoreHistory.length - 1];
+        const previous = this.scoreHistory[this.scoreHistory.length - 2];
+
+        const scoreDiff = current.score - previous.score;
+        const timeDiff = (current.timestamp - previous.timestamp) / 1000;
+
+        if (timeDiff > 0) {
+            const scorePerSecond = scoreDiff / timeDiff;
+
+            if (scorePerSecond > this.maxScorePerSecond) {
+                const severity = Math.min(10, Math.floor(scorePerSecond / 5));
+                this.reportSuspiciousActivity(
+                    'rapid_score_increase',
+                    `Score increased by ${scoreDiff} in ${timeDiff.toFixed(2)}s (${scorePerSecond.toFixed(2)} pts/s)`,
+                    severity
+                );
+            }
+        }
+    }
+
+    // İmkansız timing tespiti
+    detectImpossibleTiming() {
+        const gameTime = (Date.now() - this.startTime) / 1000;
+        const currentScore = this.scene.score || 0;
+
+        // Minimum oyun süresi vs skor kontrolü
+        const minTimeForScore = currentScore / 20; // Maksimum 20 puan/saniye kabul et
+
+        if (gameTime < minTimeForScore && currentScore > 50) {
+            this.reportSuspiciousActivity(
+                'impossible_timing',
+                `Score ${currentScore} achieved in ${gameTime.toFixed(2)}s (min expected: ${minTimeForScore.toFixed(2)}s)`,
+                9
+            );
+        }
+    }
+
+    // Pattern anomalileri tespiti
+    detectPatternAnomalies() {
+        if (this.scoreHistory.length < 5) return;
+
+        // Son 5 skor değişimini al
+        const recent = this.scoreHistory.slice(-5);
+        const scoreChanges = [];
+
+        for (let i = 1; i < recent.length; i++) {
+            const change = recent[i].score - recent[i - 1].score;
+            if (change > 0) scoreChanges.push(change);
+        }
+
+        // Eğer tüm değişimler aynı değerde ise (örn. hep +10)
+        if (scoreChanges.length >= 3) {
+            const allSame = scoreChanges.every(change => change === scoreChanges[0]);
+            const averageChange = scoreChanges.reduce((a, b) => a + b, 0) / scoreChanges.length;
+
+            if (allSame && averageChange >= 30) {
+                this.reportSuspiciousActivity(
+                    'pattern_anomaly',
+                    `Consistent score pattern detected: ${scoreChanges.join(', ')}`,
+                    6
+                );
+            }
+        }
+    }
+
+    // Şüpheli aktiviteyi rapor et
+    async reportSuspiciousActivity(activityType, details, severityLevel) {
+        try {
+            console.log(`🚨 Suspicious activity detected: ${activityType}`);
+            console.log(`📝 Details: ${details}`);
+            console.log(`⚡ Severity: ${severityLevel}/10`);
+
+            const report = {
+                sessionId: this.sessionId,
+                activityType: activityType,
+                details: details,
+                severityLevel: severityLevel,
+                timestamp: Date.now()
+            };
+
+            // Backend'e rapor gönder
+            const response = await this.apiClient.reportSuspiciousActivity(report);
+
+            if (!response.success) {
+                console.log(`🔨 SUSPICIOUS ACTIVITY RESPONSE: ${response.action}`);
+                console.log(`🎯 Cheat Probability: ${response.cheatProbability}%`);
+
+                if (response.action === 'terminate_session') {
+                    this.handleSessionTermination(response);
+                }
+            }
+
+            // Local storage
+            this.suspiciousEvents.push({
+                ...report,
+                response: response
+            });
+
+        } catch (error) {
+            console.error('❌ Failed to report suspicious activity:', error);
+        }
+    }
+
+    // Validation failure handling
+    handleValidationFailure(response) {
+        console.log('🔨 HANDLING VALIDATION FAILURE');
+
+        if (response.action === 'terminate_session') {
+            this.handleSessionTermination(response);
+        } else {
+            // Uyarı göster ama oyunu devam ettir
+            this.showWarning(response.reason);
+        }
+    }
+
+    // Session sonlandırma
+    handleSessionTermination(response) {
+        console.log('💀 TERMINATING SESSION DUE TO CHEAT DETECTION');
+
+        this.stop();
+        this.scene.gameActive = false;
+
+        // Cheat detection mesajı göster
+        const cheatText = this.scene.add.text(
+            this.scene.scale.width / 2,
+            this.scene.scale.height / 2,
+            `🚨 CHEAT DETECTED 🚨\n\n${response.reason}\n\nSession Terminated\nProbability: ${response.cheatProbability}%`,
+            {
+                fontSize: '28px',
+                fill: '#ff0000',
+                align: 'center',
+                fontFamily: 'monospace',
+                stroke: '#ffffff',
+                strokeThickness: 2
+            }
+        );
+        cheatText.setOrigin(0.5);
+        cheatText.setDepth(10000);
+
+        // 3 saniye sonra game over
+        setTimeout(() => {
+            this.scene.handleGameOver();
+        }, 3000);
+    }
+
+    // Uyarı göster
+    showWarning(message) {
+        const warningText = this.scene.add.text(
+            this.scene.scale.width / 2,
+            100,
+            `⚠️ WARNING: ${message}`,
+            {
+                fontSize: '20px',
+                fill: '#ffaa00',
+                align: 'center',
+                fontFamily: 'monospace',
+                stroke: '#000000',
+                strokeThickness: 2
+            }
+        );
+        warningText.setOrigin(0.5);
+        warningText.setDepth(9999);
+
+        // 3 saniye sonra kaybolsun
+        setTimeout(() => {
+            if (warningText && warningText.destroy) {
+                warningText.destroy();
+            }
+        }, 3000);
+    }
+
+    // Oyun durumunu yakala
+    captureGameState() {
+        return {
+            score: this.scene.score || 0,
+            hearts: this.scene.hearts || 3,
+            itemsHit: this.scene.itemsHit || 0,
+            bombsHit: this.scene.bombsHit || 0,
+            gameTime: Date.now() - (this.scene.gameStartTime || Date.now())
+        };
+    }
+
+    // Action kaydet (opsiyonel - detaylı tracking için)
+    recordAction(actionType, data) {
+        this.actionHistory.push({
+            type: actionType,
+            data: data,
+            timestamp: Date.now()
+        });
+
+        // Son 1 dakikayı tut
+        const oneMinuteAgo = Date.now() - 60000;
+        this.actionHistory = this.actionHistory.filter(action => action.timestamp > oneMinuteAgo);
+    }
+
+    // Status bilgisi
+    getStatus() {
+        return {
+            isActive: this.isActive,
+            sessionId: this.sessionId,
+            scoreHistoryLength: this.scoreHistory.length,
+            suspiciousEventsCount: this.suspiciousEvents.length,
+            lastValidation: this.lastValidation || 'Not yet performed',
+            monitoringTime: this.isActive ? Math.floor((Date.now() - this.startTime) / 1000) + 's' : 'Not active'
+        };
+    }
+}
+
+// Global access
+window.WizardRealTimeMonitor = WizardRealTimeMonitor;
+
+// API Client'e yeni metodlar eklenmesi gerekiyor
+// WizardGameAPI sınıfına eklenecek metodlar:
+
+// Real-time validation metodu
+WizardGameAPI.prototype.realTimeValidation = async function (validationData) {
+    try {
+        const response = await fetch(`${this.baseURL}/real-time-validation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(validationData)
+        });
+
+        const data = await response.json();
+        console.log('🔥 Real-time validation response:', data);
+        return data;
+    } catch (error) {
+        console.error('❌ Real-time validation error:', error);
+        return { success: false, reason: 'Validation failed', error: error.message };
+    }
+};
+
+// Suspicious activity reporting metodu
+WizardGameAPI.prototype.reportSuspiciousActivity = async function (activityData) {
+    try {
+        const response = await fetch(`${this.baseURL}/report-suspicious-activity`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(activityData)
+        });
+
+        const data = await response.json();
+        console.log('🚨 Suspicious activity response:', data);
+        return data;
+    } catch (error) {
+        console.error('❌ Suspicious activity reporting error:', error);
+        return { success: false, reason: 'Reporting failed', error: error.message };
+    }
+};
+
+console.log('🔥 Real-Time Monitoring System loaded and ready!');
 
 // ------------------- Start Scene -------------------
 
@@ -695,11 +1263,30 @@ class GameScene extends Phaser.Scene {
         this.snapshotProtection = new WizardSnapshotProtection(this);
         this.snapshotProtection.setAPIClient(this.api);
         this.snapshotProtection.start();
-        
+
         // Global access
         window.wizardGameScene = this;
-        
+
+        // Global access
+        window.wizardGameScene = this;
+
+        // 🍯 Honeypot Detection sistemi başlat - BURAYA EKLE
+        this.honeypot = new WizardHoneypot(this);
+        this.honeypot.setSessionId(this.api.sessionId);
+
         console.log('🛡️ All security systems initialized');
+
+        console.log('🛡️ All security systems initialized');
+
+        // 🔥 Real-Time Monitoring sistemi başlat - YENİ!
+        this.realTimeMonitor = new WizardRealTimeMonitor(this);
+        this.realTimeMonitor.setAPIClient(this.api);
+        this.realTimeMonitor.start();
+
+        console.log('🛡️ All security systems initialized');
+        console.log('🔥 Real-Time Monitoring: ACTIVE');
+        console.log('📸 Snapshot Protection: ACTIVE');
+        console.log('🍯 Honeypot Detection: ACTIVE');
 
         // Arkaplan müziği başlat
         this.backgroundMusic = this.sound.add('background-music', {
@@ -726,6 +1313,13 @@ class GameScene extends Phaser.Scene {
 
         this.input.keyboard.on('keydown-L', () => {
             this.handleGameOver();
+        });
+
+        this.input.keyboard.on('keydown-M', () => {
+            console.log('🛡️ SECURITY SYSTEMS STATUS:');
+            console.log('📊 Real-Time Monitor:', this.realTimeMonitor.getStatus());
+            console.log('📸 Snapshot Protection:', this.snapshotProtection.getStatus());
+            console.log('🍯 Honeypot System:', this.honeypot.getStatus());
         });
 
         this.itemSpawnInterval; // item spawn aralığı
@@ -968,6 +1562,9 @@ class GameScene extends Phaser.Scene {
 
             }
         });
+        if (this.honeypot) {
+            this.honeypot.trackPlayerArrows();
+        }
     }
 
     addUIElements() {
@@ -1139,6 +1736,15 @@ class GameScene extends Phaser.Scene {
         if (this.api) {
             await this.api.recordArrowShot(x, y);
         }
+
+        // 🔥 Real-time monitoring'e action kaydet
+        if (this.realTimeMonitor) {
+            this.realTimeMonitor.recordAction('arrow_shot', {
+                velocityX: x,
+                velocityY: y,
+                playerPosition: { x: this.player.x, y: this.player.y }
+            });
+        }
         // Ateş etme sesi çal
         this.shootSound.play();
         let fireballTexture;
@@ -1272,6 +1878,15 @@ class GameScene extends Phaser.Scene {
         this.score += 10;
         this.itemScoreText.setText(this.score);
 
+        // 🔥 Real-time monitoring'e action kaydet
+        if (this.realTimeMonitor) {
+            this.realTimeMonitor.recordAction('item_hit', {
+                score: this.score,
+                itemPosition: { x: item.x, y: item.y },
+                arrowPosition: { x: arrow.x, y: arrow.y }
+            });
+        }
+
         // 🌐 API'ye item hit bildir - BURAYA EKLE
         if (this.api) {
             const result = await this.api.recordItemHit(this.score);
@@ -1354,6 +1969,15 @@ class GameScene extends Phaser.Scene {
         if (this.hearts > 0) {
             this.hearts--; // Canı azalt
 
+            // 🔥 Real-time monitoring'e action kaydet
+            if (this.realTimeMonitor) {
+                this.realTimeMonitor.recordAction('bomb_hit', {
+                    hearts: this.hearts,
+                    bombPosition: { x: bomb.x, y: bomb.y },
+                    arrowPosition: { x: arrow.x, y: arrow.y }
+                });
+            }
+
             // 🌐 API'ye bomb hit bildir - BURAYA EKLE
             if (this.api) {
                 const result = await this.api.recordBombHit(this.hearts);
@@ -1410,6 +2034,20 @@ class GameScene extends Phaser.Scene {
 
     handleGameOver() {
         this.gameActive = false;
+        // 🛡️ Güvenlik sistemlerini durdur
+        if (this.realTimeMonitor) {
+            this.realTimeMonitor.stop();
+        }
+
+        if (this.snapshotProtection) {
+            this.snapshotProtection.stop();
+        }
+
+        if (this.honeypot) {
+            this.honeypot.cleanup();
+        }
+
+        console.log('🛡️ All security systems stopped');
         this.clearScreen();
         this.sound.stopAll();
         this.lightningTimer.remove();
@@ -1432,6 +2070,22 @@ class GameScene extends Phaser.Scene {
         this.backgroundMusic.stop();
         this.lightningTimer.remove();
         this.countdownTimer.remove();
+
+        // 🛡️ Güvenlik sistemlerini durdur
+        if (this.realTimeMonitor) {
+            this.realTimeMonitor.stop();
+        }
+
+        if (this.snapshotProtection) {
+            this.snapshotProtection.stop();
+        }
+
+        if (this.honeypot) {
+            this.honeypot.cleanup();
+        }
+
+        console.log('🛡️ All security systems stopped - GAME WON');
+
         // 1) Anında beyazı “yak”
         this.fadeRect.alpha = 1;
         // 2) Arkaplanları değiştir
