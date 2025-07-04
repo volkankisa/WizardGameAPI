@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WizardGameAPI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d222702ae084065f3c947c3f1c288600fe3ca157")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+66745dd7f5ee333f26ce220fec82ae70d14e2526")]
 [assembly: System.Reflection.AssemblyProductAttribute("WizardGameAPI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WizardGameAPI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
